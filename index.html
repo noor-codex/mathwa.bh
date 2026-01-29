@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathwa - Your home is coming soon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Figtree', sans-serif;
+            background-color: #FF645C;
+            color: #FFFFFF;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 30px 50px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 20px;
+        }
+
+        .icon-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s;
+        }
+
+        .icon-button:hover {
+            opacity: 0.8;
+        }
+
+        .icon-button svg {
+            width: 24px;
+            height: 24px;
+            fill: #FFFFFF;
+        }
+
+        .main-content {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 120px 50px 50px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 60px;
+            min-height: 100vh;
+        }
+
+        .left-section {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .logo {
+            max-width: 140px;
+            width: 100%;
+            height: auto;
+            flex-shrink: 0;
+        }
+
+        .title-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-title {
+            font-size: 64px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .right-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+            gap: 20px;
+        }
+
+        .subtitle {
+            font-size: 28px;
+            font-weight: 300;
+            margin: 0;
+            letter-spacing: 0.01em;
+            line-height: 1.4;
+        }
+
+        .subtitle .italic {
+            font-style: italic;
+        }
+
+        .invest-button {
+            background-color: transparent;
+            border: 2px solid #FFFFFF;
+            color: #FFFFFF;
+            padding: 14px 32px;
+            font-family: 'Figtree', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            letter-spacing: 0.02em;
+            margin-top: 10px;
+        }
+
+        .invest-button:hover {
+            background-color: #FFFFFF;
+            color: #FF645C;
+        }
+
+        .popup {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #FFFFFF;
+            color: #FF645C;
+            padding: 15px 30px;
+            border-radius: 4px;
+            font-family: 'Figtree', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .popup.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+                padding: 100px 30px 50px;
+            }
+
+            .left-section {
+                justify-content: center;
+            }
+
+            .right-section {
+                align-items: center;
+                text-align: center;
+            }
+
+            .main-title {
+                font-size: 48px;
+            }
+
+            .subtitle {
+                font-size: 22px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px 30px;
+            }
+
+            .main-content {
+                padding: 90px 20px 40px;
+            }
+
+            .logo {
+                max-width: 100px;
+            }
+
+            .main-title {
+                font-size: 36px;
+            }
+
+            .subtitle {
+                font-size: 18px;
+            }
+
+            .left-section {
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="mailto:support@mathwa.bh" class="icon-button" aria-label="Email support">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+        </a>
+        <a href="https://www.instagram.com/mathwa.bh/" target="_blank" rel="noopener noreferrer" class="icon-button" aria-label="Instagram">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+        </a>
+    </header>
+
+    <main class="main-content">
+        <div class="left-section">
+            <img src="assets/Main_Mathwa_Logo_Vector-939832ef-4e5e-4870-9b09-935d205885ed.png" alt="Mathwa Logo" class="logo">
+            <div class="title-group">
+                <h1 class="main-title">Mathwa</h1>
+            </div>
+        </div>
+        <div class="right-section">
+            <p class="subtitle">
+                <span class="italic">Your</span> home is coming soon.
+            </p>
+            <button class="invest-button" id="investButton">Looking to invest?</button>
+        </div>
+    </main>
+
+    <div class="popup" id="popup">Phone Number copied</div>
+
+    <script>
+        const investButton = document.getElementById('investButton');
+        const popup = document.getElementById('popup');
+        const phoneNumber = '3310 3016';
+
+        investButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(phoneNumber).then(() => {
+                popup.classList.add('show');
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                }, 2000);
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = phoneNumber;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                popup.classList.add('show');
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
