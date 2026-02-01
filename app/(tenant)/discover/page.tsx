@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ListingCard } from "@/components/listings/listing-card";
 import { DiscoverTabs } from "./discover-tabs";
 
+export const dynamic = "force-dynamic";
+
 type SearchParams = { feed?: string; sort?: string };
 
 export default async function DiscoverPage({
@@ -20,28 +22,11 @@ export default async function DiscoverPage({
 
   let query = supabase
     .from("listings")
-    .select(
-      `
-      id,
-      title,
-      price_monthly,
-      beds,
-      baths,
-      city,
-      is_featured,
-      is_uni_hub,
-      created_at,
-      listing_media(external_url, storage_path)
-    `
-    )
+    .select("id, title, price_monthly, beds, baths, city, is_featured, is_uni_hub, created_at")
     .eq("status", "active")
-    .eq("moderation_status", "approved");
+    .eq("moderation_status", "approved")
+    .in("is_uni_hub", feed === "uni-hub" ? [true] : [false]);
 
-  if (feed === "uni-hub") {
-    query = query.eq("is_uni_hub", true);
-  } else {
-    query = query.eq("is_uni_hub", false);
-  }
 
   if (sort === "newest") {
     query = query.order("created_at", { ascending: false });
@@ -51,7 +36,17 @@ export default async function DiscoverPage({
     query = query.order("price_monthly", { ascending: false, nullsFirst: false });
   }
 
-  const { data: listings } = await query;
+  const { data: listings, error } = await query;
+
+  if (error) {
+    const errMsg =
+      (error as { message?: string })?.message ??
+      (error as { code?: string })?.code ??
+      (error instanceof Error ? error.toString() : String(error));
+    console.error("[Discover] Supabase error:", errMsg);
+  } else {
+    console.log("[Discover] Listings count:", listings?.length ?? 0, "feed:", feed);
+  }
 
   const savedIds = new Set<string>();
   if (user) {
@@ -77,7 +72,11 @@ export default async function DiscoverPage({
       </div>
 
       <div className="grid gap-3 px-4 pt-4 sm:grid-cols-2 lg:grid-cols-3">
-        {listingsWithSaved.length === 0 ? (
+        {error ? (
+          <p className="col-span-full py-8 text-center text-destructive">
+            Error: {(error as { message?: string })?.message ?? (error as { code?: string })?.code ?? String(error)}
+          </p>
+        ) : listingsWithSaved.length === 0 ? (
           <p className="col-span-full py-8 text-center text-muted-foreground">
             No listings yet. Run the seed migration to add sample data.
           </p>

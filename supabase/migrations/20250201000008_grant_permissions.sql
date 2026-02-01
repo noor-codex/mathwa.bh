@@ -1,8 +1,7 @@
 -- Grant read access for anon/authenticated on tables used by tenant discover
--- Supabase client uses these roles; without GRANT, RLS blocks even permitted rows
+-- Fixes 42501 "permission denied" when client queries via PostgREST
 
-GRANT SELECT ON public.listings TO anon;
-GRANT SELECT ON public.listings TO authenticated;
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
 
-GRANT SELECT ON public.listing_media TO anon;
-GRANT SELECT ON public.listing_media TO authenticated;
+GRANT SELECT ON public.listings TO anon, authenticated;
+GRANT SELECT ON public.listing_media TO anon, authenticated;
