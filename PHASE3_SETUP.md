@@ -11,6 +11,7 @@ Phase 3 migrations create the full database schema. Run them in order.
 5. `20250201000004_create_tours_contracts.sql` – tour_requests, contracts
 6. `20250201000005_create_moderation.sql` – moderation_queue, moderation_decisions
 7. `20250201000006_create_notifications_m2.sql` – notifications, m2_jobs
+8. `20250201000007_seed_listings.sql` – sample Bahrain listings (Phase 4; run after you have a user)
 
 ## How to run
 
