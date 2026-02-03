@@ -1,14 +1,9 @@
-import { TenantBottomNav } from "@/components/layout/tenant-bottom-nav";
+import { TenantLayoutClient } from "@/components/layout/tenant-layout-client";
 
 export default function TenantLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="min-h-screen pb-16">
-      <main>{children}</main>
-      <TenantBottomNav />
-    </div>
-  );
+  return <TenantLayoutClient>{children}</TenantLayoutClient>;
 }

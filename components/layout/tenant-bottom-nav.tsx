@@ -34,7 +34,9 @@ export function TenantBottomNav() {
               href={href}
               className={cn(
                 "flex flex-col items-center gap-0.5 px-4 py-1 text-xs transition-colors",
-                isActive ? "text-primary font-medium" : "text-muted-foreground"
+                isActive
+                  ? "font-medium text-[var(--discover-black)]"
+                  : "text-[var(--discover-grey-muted)]"
               )}
             >
               <HugeiconsIcon icon={Icon} className="h-5 w-5" />
