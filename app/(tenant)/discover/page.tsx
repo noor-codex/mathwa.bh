@@ -36,9 +36,9 @@ export default async function DiscoverPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Omit furnished_type and utilities_included when DB has not run migrations 20250201000010 / 20250201000011
+  // furnished_type and utilities_included require migrations 20250201000010 / 20250201000011
   const selectColumns =
-    "id, title, price_monthly, beds, baths, city, area, area_sqm, owner_type, is_featured, is_uni_hub, created_at, listing_media(external_url, storage_path, order_index)";
+    "id, title, price_monthly, beds, baths, city, area, area_sqm, owner_type, is_featured, is_m2, is_uni_hub, created_at, listing_media(external_url, storage_path, order_index)";
 
   let query = supabase
     .from("listings")
@@ -165,7 +165,7 @@ export default async function DiscoverPage({
         )}
       </div>
 
-      <div className="mx-auto grid max-w-xl gap-3 px-4 pt-4 sm:max-w-2xl sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+      <div className="mx-auto grid min-w-0 max-w-xl grid-cols-1 gap-3 px-4 pt-4 sm:max-w-2xl sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
         {error ? (
           <p className="col-span-full py-8 text-center text-destructive">
             Error: {(error as { message?: string })?.message ?? (error as { code?: string })?.code ?? String(error)}

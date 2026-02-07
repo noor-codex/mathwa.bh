@@ -58,3 +58,25 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/discover");
 }
+
+export async function signInWithGoogle(redirectTo: string) {
+  const supabase = await createClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (data.url) {
+    redirect(data.url);
+  }
+
+  return { error: "Failed to get OAuth URL" };
+}

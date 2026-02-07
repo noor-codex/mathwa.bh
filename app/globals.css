@@ -238,7 +238,31 @@
 }
 
 .animate-filter-sheet-open {
+  will-change: transform;
   animation: filter-sheet-open 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes filter-sheet-close {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.animate-filter-sheet-close {
+  will-change: transform;
+  animation: filter-sheet-close 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @layer base {
