@@ -5,3 +5,6 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated;
 
 GRANT SELECT ON public.listings TO anon, authenticated;
 GRANT SELECT ON public.listing_media TO anon, authenticated;
+GRANT SELECT ON public.profiles TO anon, authenticated;
+GRANT SELECT ON public.rental_manager_profiles TO anon, authenticated;
+GRANT SELECT ON public.agencies TO anon, authenticated;

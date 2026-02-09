@@ -36,9 +36,8 @@ export default async function DiscoverPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // furnished_type and utilities_included require migrations 20250201000010 / 20250201000011
   const selectColumns =
-    "id, title, price_monthly, beds, baths, city, area, area_sqm, owner_type, is_featured, is_m2, is_uni_hub, created_at, listing_media(external_url, storage_path, order_index)";
+    "id, title, price_monthly, beds, baths, city, area, area_sqm, is_premium, is_uni_hub, furnished_type, utilities_included, created_at, listing_media(external_url, storage_path, order_index)";
 
   let query = supabase
     .from("listings")
@@ -94,12 +93,10 @@ export default async function DiscoverPage({
     query = query.order("price_monthly", { ascending: true, nullsFirst: false });
   } else if (sort === "price_desc") {
     query = query.order("price_monthly", { ascending: false, nullsFirst: false });
-  } else if (sort === "featured_first") {
+  } else if (sort === "premium_first") {
     query = query
-      .order("is_featured", { ascending: false })
+      .order("is_premium", { ascending: false })
       .order("created_at", { ascending: false });
-  } else if (sort === "area_sqm_first") {
-    query = query.order("area_sqm", { ascending: false, nullsFirst: false });
   } else {
     query = query.order("created_at", { ascending: false });
   }

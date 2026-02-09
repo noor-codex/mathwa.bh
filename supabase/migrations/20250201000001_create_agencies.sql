@@ -1,7 +1,8 @@
 -- Enums for agency-related tables
 CREATE TYPE public.agency_status AS ENUM ('pending', 'active', 'suspended');
+CREATE TYPE public.agency_staff_role AS ENUM ('agent', 'listing_manager', 'admin');
 
--- agencies
+-- agencies (companies / property management firms / real estate agencies)
 CREATE TABLE public.agencies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -14,8 +15,6 @@ CREATE TABLE public.agencies (
 );
 
 -- agency_staff (membership + role within agency)
-CREATE TYPE public.agency_staff_role AS ENUM ('agent', 'listing_manager', 'admin');
-
 CREATE TABLE public.agency_staff (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agency_id UUID NOT NULL REFERENCES public.agencies(id) ON DELETE CASCADE,
@@ -26,11 +25,15 @@ CREATE TABLE public.agency_staff (
   UNIQUE(agency_id, user_id)
 );
 
--- agency_referral_codes
-CREATE TABLE public.agency_referral_codes (
+-- company_invite_codes (replaces agency_referral_codes)
+CREATE TABLE public.company_invite_codes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agency_id UUID NOT NULL REFERENCES public.agencies(id) ON DELETE CASCADE,
   code TEXT NOT NULL UNIQUE,
+  role public.agency_staff_role NOT NULL DEFAULT 'agent',
+  max_uses INTEGER,
+  uses_count INTEGER NOT NULL DEFAULT 0,
+  expires_at TIMESTAMPTZ,
   created_by_user_id UUID REFERENCES public.profiles(user_id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -56,6 +59,33 @@ CREATE TABLE public.agency_credit_ledger (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- SECURITY DEFINER helper functions to avoid RLS recursion on agency_staff
+CREATE OR REPLACE FUNCTION public.is_agency_admin_or_manager(p_agency_id UUID, p_user_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.agency_staff
+    WHERE agency_id = p_agency_id
+      AND user_id = p_user_id
+      AND role IN ('admin', 'listing_manager')
+  );
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.is_agency_admin(p_agency_id UUID, p_user_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.agency_staff
+    WHERE agency_id = p_agency_id AND user_id = p_user_id AND role = 'admin'
+  );
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.is_agency_member(p_agency_id UUID, p_user_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.agency_staff
+    WHERE agency_id = p_agency_id AND user_id = p_user_id
+  );
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
+
 -- RLS: agencies
 ALTER TABLE public.agencies ENABLE ROW LEVEL SECURITY;
 
@@ -73,10 +103,7 @@ CREATE POLICY "Agency staff can update their agency"
   ON public.agencies FOR UPDATE
   USING (
     primary_contact_user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.agency_staff
-      WHERE agency_id = agencies.id AND user_id = auth.uid()
-    )
+    OR public.is_agency_member(id, auth.uid())
   );
 
 -- RLS: agency_staff
@@ -87,12 +114,7 @@ CREATE POLICY "Users can read agency_staff for agencies they belong to"
   TO authenticated
   USING (
     user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.agency_staff AS s
-      WHERE s.agency_id = agency_staff.agency_id
-        AND s.user_id = auth.uid()
-        AND s.role IN ('admin', 'listing_manager')
-    )
+    OR public.is_agency_admin_or_manager(agency_id, auth.uid())
   );
 
 CREATE POLICY "Primary contact can add themselves as first staff"
@@ -109,38 +131,25 @@ CREATE POLICY "Primary contact can add themselves as first staff"
 
 CREATE POLICY "Agency admins can manage staff"
   ON public.agency_staff FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.agency_staff AS s
-      WHERE s.agency_id = agency_staff.agency_id
-        AND s.user_id = auth.uid()
-        AND s.role = 'admin'
-    )
-  );
+  USING (public.is_agency_admin(agency_id, auth.uid()));
 
--- RLS: agency_referral_codes
-ALTER TABLE public.agency_referral_codes ENABLE ROW LEVEL SECURITY;
+-- RLS: company_invite_codes
+ALTER TABLE public.company_invite_codes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Agency staff can read referral codes"
-  ON public.agency_referral_codes FOR SELECT
+CREATE POLICY "Agency staff can read invite codes"
+  ON public.company_invite_codes FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.agency_staff
-      WHERE agency_id = agency_referral_codes.agency_id AND user_id = auth.uid()
-    )
-  );
+  USING (public.is_agency_member(agency_id, auth.uid()));
 
-CREATE POLICY "Agency admins can manage referral codes"
-  ON public.agency_referral_codes FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.agency_staff
-      WHERE agency_id = agency_referral_codes.agency_id
-        AND user_id = auth.uid()
-        AND role = 'admin'
-    )
-  );
+CREATE POLICY "Agency admins can manage invite codes"
+  ON public.company_invite_codes FOR ALL
+  USING (public.is_agency_admin(agency_id, auth.uid()));
+
+-- Anyone authenticated can read a code by its value (for redemption)
+CREATE POLICY "Authenticated users can look up invite codes"
+  ON public.company_invite_codes FOR SELECT
+  TO authenticated
+  USING (true);
 
 -- Trigger: create wallet when agency is created
 CREATE OR REPLACE FUNCTION public.handle_new_agency()
@@ -162,12 +171,7 @@ ALTER TABLE public.agency_credit_wallets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Agency staff can read wallets"
   ON public.agency_credit_wallets FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.agency_staff
-      WHERE agency_id = agency_credit_wallets.agency_id AND user_id = auth.uid()
-    )
-  );
+  USING (public.is_agency_member(agency_id, auth.uid()));
 
 -- Ledger: service role / edge functions typically update; restrict writes
 ALTER TABLE public.agency_credit_ledger ENABLE ROW LEVEL SECURITY;
@@ -178,8 +182,8 @@ CREATE POLICY "Agency staff can read ledger"
   USING (
     EXISTS (
       SELECT 1 FROM public.agency_credit_wallets w
-      JOIN public.agency_staff s ON s.agency_id = w.agency_id
-      WHERE w.id = agency_credit_ledger.wallet_id AND s.user_id = auth.uid()
+      WHERE w.id = agency_credit_ledger.wallet_id
+        AND public.is_agency_member(w.agency_id, auth.uid())
     )
   );
 
@@ -192,8 +196,8 @@ CREATE TRIGGER agency_staff_updated_at
   BEFORE UPDATE ON public.agency_staff
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-CREATE TRIGGER agency_referral_codes_updated_at
-  BEFORE UPDATE ON public.agency_referral_codes
+CREATE TRIGGER company_invite_codes_updated_at
+  BEFORE UPDATE ON public.company_invite_codes
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 CREATE TRIGGER agency_credit_wallets_updated_at

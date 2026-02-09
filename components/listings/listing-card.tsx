@@ -22,9 +22,7 @@ type Listing = {
   city: string | null;
   area: string | null;
   area_sqm: number | null;
-  owner_type?: "landlord" | "agency";
-  is_featured: boolean;
-  is_m2?: boolean;
+  is_premium: boolean;
   is_uni_hub: boolean;
   listing_media?: MediaItem[];
   saved?: boolean;
@@ -133,25 +131,17 @@ export function ListingCard({ listing }: { listing: Listing }) {
             unoptimized={currentImageUrl.startsWith("http") && !currentImageUrl.includes("unsplash.com")}
           />
 
-          {/* Top-left: Tag frame (Featured + m²) - extra top padding to align with save icon */}
-          <div className="absolute left-0 top-0 flex flex-row flex-wrap gap-1.5 pl-4 pr-2 pb-2 pt-4 sm:pl-5 sm:pr-2.5 sm:pb-2.5 sm:pt-4">
-            {listing.is_featured && (
+          {/* Top-left: Tag frame (Premium) */}
+          {listing.is_premium && (
+            <div className="absolute left-0 top-0 flex flex-row flex-wrap gap-1.5 pl-4 pr-2 pb-2 pt-4 sm:pl-5 sm:pr-2.5 sm:pb-2.5 sm:pt-4">
               <span
                 className="flex h-7 w-[90px] flex-none items-center justify-center rounded-[16px] bg-white text-[#1A1A1A] sm:h-[30px] sm:w-[105px]"
                 style={{ fontFamily: "Figtree", fontWeight: 500, lineHeight: "16px" }}
               >
-                <span className="text-base sm:text-[20px]">Featured</span>
+                <span className="text-base sm:text-[20px]">Premium</span>
               </span>
-            )}
-            {listing.is_m2 && (
-              <span
-                className="flex h-7 min-w-[40px] flex-none items-center justify-center rounded-[16px] bg-white px-2.5 py-1.5 text-[#1A1A1A] sm:h-[30px] sm:min-w-[46px] sm:px-[10px] sm:py-[7px]"
-                style={{ fontFamily: "Figtree", fontWeight: 500, lineHeight: "16px" }}
-              >
-                <span className="text-base sm:text-[20px]">m²</span>
-              </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Far right: Save icon (no background, transparent) */}
           <div className="absolute right-0 top-0 p-2 sm:p-2.5">

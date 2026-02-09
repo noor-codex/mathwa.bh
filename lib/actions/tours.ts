@@ -29,10 +29,10 @@ export async function createTourRequest(
     return { success: false, error: "Authentication required" };
   }
 
-  // Get listing details to determine counterparty
+  // Get listing details to determine manager
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, owner_type, landlord_user_id, agent_user_id")
+    .select("id, manager_user_id")
     .eq("id", listingId)
     .single();
 
@@ -40,20 +40,13 @@ export async function createTourRequest(
     return { success: false, error: "Listing not found" };
   }
 
-  // Determine counterparty type and ID based on listing owner
-  const counterpartyType = listing.owner_type === "agency" ? "agent" : "landlord";
-  const agentUserId = counterpartyType === "agent" ? listing.agent_user_id : null;
-  const landlordUserId = counterpartyType === "landlord" ? listing.landlord_user_id : null;
-
   // Create the tour request
   const { data: tourRequest, error: createError } = await supabase
     .from("tour_requests")
     .insert({
       listing_id: listingId,
       tenant_user_id: user.id,
-      counterparty_type: counterpartyType,
-      agent_user_id: agentUserId,
-      landlord_user_id: landlordUserId,
+      manager_user_id: listing.manager_user_id,
       requested_slot: requestedSlot.toISOString(),
       status: "pending",
     })

@@ -180,7 +180,7 @@ export function ChatDetailsSheet({
               className="font-semibold text-[#0A0A0A]"
               style={{ fontFamily: "Figtree", fontSize: 20, lineHeight: "24px" }}
             >
-              {thread.counterparty_type === "agent" ? "Agent" : "Landlord"}
+              Rental Manager
             </h3>
             <div className="flex items-center gap-4 rounded-[16px] py-0">
               {/* Avatar */}
@@ -208,9 +208,7 @@ export function ChatDetailsSheet({
                   className="font-normal text-[#707072]"
                   style={{ fontFamily: "Figtree", fontSize: 12, lineHeight: "14px" }}
                 >
-                  {thread.counterparty_type === "agent"
-                    ? "Real Estate Agent"
-                    : "Property Owner"}
+                  Rental Manager
                 </span>
                 <span
                   className="font-medium text-[#1A1A1A]"

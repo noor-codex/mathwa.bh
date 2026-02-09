@@ -34,13 +34,19 @@ type ListingDetail = {
   address: string | null;
   lat: number | null;
   lng: number | null;
-  is_featured: boolean;
-  is_m2: boolean | null;
-  owner_type: "landlord" | "agency";
+  is_premium: boolean;
+  property_type?: string;
+  furnished_type?: string | null;
+  utilities_included?: boolean | null;
+  ac_type?: string | null;
+  pets_policy?: string | null;
+  move_in_special?: boolean;
+  move_in_special_desc?: string | null;
+  manager_user_id?: string;
+  agency_id?: string | null;
   listing_media?: MediaItem[] | null;
-  landlord_profile?: { display_name: string | null } | null;
-  agent_profile?: { display_name: string | null } | null;
-  agency?: { name: string } | null;
+  manager_profile?: { full_name: string; manager_type: string } | null;
+  agency_name?: string | null;
   amenities?: string[] | null;
 };
 
@@ -179,14 +185,17 @@ export function ListingDetailContent({
     touchStartXRef.current = null;
   }, []);
 
-  const ownerName =
-    listing.owner_type === "landlord"
-      ? listing.landlord_profile?.display_name ?? "—"
-      : listing.agent_profile?.display_name ?? "—";
-  const companyName =
-    listing.owner_type === "landlord" ? "Private owner" : (listing.agency?.name ?? "—");
+  const managerName = listing.manager_profile?.full_name ?? "—";
+  const managerTypeLabel =
+    listing.manager_profile?.manager_type === "private_owner"
+      ? "Private Owner"
+      : listing.manager_profile?.manager_type === "independent_agent"
+        ? "Independent Agent"
+        : listing.agency_name
+          ? `Agent at ${listing.agency_name}`
+          : "Rental Manager";
 
-  const propertyType = listing.beds === 0 ? "studio" : "apartment";
+  const propertyType = listing.property_type ?? (listing.beds === 0 ? "studio" : "apartment");
 
   const handleShare = useCallback(() => {
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -372,26 +381,8 @@ export function ListingDetailContent({
         </h1>
 
         {/* Tags */}
-        <div className="mt-4 flex flex-wrap justify-center items-center gap-2">
-          {listing.is_m2 && (
-            <span
-              className="flex flex-col items-center justify-center rounded-[15px] bg-white"
-              style={{ padding: "5px 20px 0px", height: 31 }}
-            >
-              <span
-                className="font-extrabold text-[#1A1A1A]"
-                style={{
-                  fontFamily: "Figtree",
-                  fontSize: 20,
-                  lineHeight: "24px",
-                  textShadow: "0px 0px 1px rgba(30, 30, 30, 0.25)",
-                }}
-              >
-                m² listing
-              </span>
-            </span>
-          )}
-          {listing.is_featured && (
+        {listing.is_premium && (
+          <div className="mt-4 flex flex-wrap justify-center items-center gap-2">
             <span
               className="flex flex-col items-center justify-center rounded-[15px] bg-white"
               style={{ padding: "5px 20px 0px", height: 29 }}
@@ -405,11 +396,11 @@ export function ListingDetailContent({
                   textShadow: "0px 0px 1px rgba(30, 30, 30, 0.25)",
                 }}
               >
-                Featured
+                Premium
               </span>
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="my-4 w-full border-t border-black/10" />
 
@@ -556,36 +547,30 @@ export function ListingDetailContent({
 
         <div className="w-full border-t border-black/10" />
 
-        {/* Meet your agent / landlord */}
+        {/* Meet your manager */}
         <section className="flex flex-col gap-4 px-0 py-6">
           <h2
             className="font-semibold text-[#0A0A0A]"
             style={{ fontFamily: "Figtree", fontSize: 18, lineHeight: "28px", letterSpacing: "-0.44px" }}
           >
-            {listing.owner_type === "landlord" ? "Meet your landlord" : "Meet your agent"}
+            Meet your rental manager
           </h2>
           <div className="flex items-start gap-4 rounded-2xl border border-transparent px-5 py-1">
             <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#E5E7EB] flex items-center justify-center text-[#1A1A1A] font-medium" style={{ fontFamily: "Figtree", fontSize: 20 }}>
-              {getInitials(ownerName)}
+              {getInitials(managerName)}
             </div>
             <div className="min-w-0 flex-1">
               <p
                 className="font-medium text-[#1A1A1A]"
                 style={{ fontFamily: "Figtree", fontSize: 16, lineHeight: "21px" }}
               >
-                {ownerName}
+                {managerName}
               </p>
               <p
                 className="font-normal text-[#707072]"
                 style={{ fontFamily: "Figtree", fontSize: 12, lineHeight: "16px" }}
               >
-                {companyName}
-              </p>
-              <p
-                className="mt-1 font-medium text-[#1A1A1A]"
-                style={{ fontFamily: "Figtree", fontSize: 14, lineHeight: "18px" }}
-              >
-                4.9 rating
+                {managerTypeLabel}
               </p>
             </div>
           </div>

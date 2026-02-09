@@ -1,5 +1,5 @@
 -- Enums for moderation
-CREATE TYPE public.moderation_entity_type AS ENUM ('listing', 'agency', 'agent_verification', 'landlord_verification');
+CREATE TYPE public.moderation_entity_type AS ENUM ('listing', 'agency', 'manager_verification');
 CREATE TYPE public.moderation_queue_status AS ENUM ('pending', 'approved', 'rejected');
 
 -- moderation_queue
@@ -15,7 +15,7 @@ CREATE TABLE public.moderation_queue (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- moderation_decisions (audit log of decisions; status updates may also go to entity)
+-- moderation_decisions (audit log of decisions)
 CREATE TABLE public.moderation_decisions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   queue_item_id UUID NOT NULL REFERENCES public.moderation_queue(id) ON DELETE CASCADE,
@@ -30,8 +30,6 @@ CREATE INDEX idx_moderation_queue_status ON public.moderation_queue(status);
 CREATE INDEX idx_moderation_queue_entity ON public.moderation_queue(entity_type, entity_id);
 
 -- RLS: moderation_queue
--- Submitters (listing owners, etc.) can insert; moderators can read and update
--- Moderator check: profiles.roles->>'moderator' = 'true'
 ALTER TABLE public.moderation_queue ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Submitters can create moderation items"
@@ -46,7 +44,6 @@ CREATE POLICY "Moderators can read moderation queue"
     (SELECT (roles->>'moderator')::boolean FROM public.profiles WHERE user_id = auth.uid()) = true
   );
 
--- Updates (approve/reject) typically via Edge Function; allow moderators for MVP
 CREATE POLICY "Moderators can update moderation queue"
   ON public.moderation_queue FOR UPDATE
   TO authenticated

@@ -7,27 +7,23 @@ import type { ActiveRole } from "@/lib/actions/profile";
 
 type ProfileSwitcherProps = {
   activeRole: string;
-  roles: { tenant?: boolean; agent?: boolean; landlord?: boolean };
+  roles: { tenant?: boolean; rental_manager?: boolean };
 };
 
 const roleLabels: Record<ActiveRole, string> = {
-  tenant: "Browse",
-  agent: "Agent",
-  landlord: "Landlord",
+  tenant: "Tenant",
+  rental_manager: "Rental Manager",
 };
 
 const rolePaths: Record<ActiveRole, string> = {
   tenant: "/discover",
-  agent: "/agent/today",
-  landlord: "/landlord/today",
+  rental_manager: "/manager/listings",
 };
 
 export function ProfileSwitcher({ activeRole, roles }: ProfileSwitcherProps) {
-  const availableRoles = (["tenant", "agent", "landlord"] as const).filter(
+  const availableRoles = (["tenant", "rental_manager"] as const).filter(
     (r) => roles[r as keyof typeof roles]
   );
-
-  if (availableRoles.length <= 1) return null;
 
   return (
     <div className="space-y-2">
@@ -51,19 +47,16 @@ export function ProfileSwitcher({ activeRole, roles }: ProfileSwitcherProps) {
           );
         })}
       </div>
-      <p className="text-muted-foreground text-xs">
-        Or{" "}
-        {availableRoles
-          .filter((r) => r !== activeRole)
-          .map((role, i) => (
-            <span key={role}>
-              {i > 0 && ", "}
-              <Link href={rolePaths[role]} className="text-primary underline">
-                open {roleLabels[role]} dashboard
-              </Link>
-            </span>
-          ))}
-      </p>
+
+      {/* Show "Become a Rental Manager" CTA if user doesn't have the role */}
+      {!roles.rental_manager && (
+        <Link
+          href="/become-manager"
+          className="inline-block text-sm text-primary underline"
+        >
+          Become a Rental Manager
+        </Link>
+      )}
     </div>
   );
 }

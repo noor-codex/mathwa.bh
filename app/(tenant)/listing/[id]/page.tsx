@@ -24,6 +24,7 @@ export default async function ListingDetailPage({
       title,
       description,
       price_monthly,
+      security_deposit,
       beds,
       baths,
       area_sqm,
@@ -33,9 +34,17 @@ export default async function ListingDetailPage({
       lat,
       lng,
       is_uni_hub,
-      is_featured,
-      is_m2,
-      owner_type,
+      is_premium,
+      property_type,
+      furnished_type,
+      utilities_included,
+      ac_type,
+      pets_policy,
+      amenities,
+      move_in_special,
+      move_in_special_desc,
+      manager_user_id,
+      agency_id,
       listing_media(external_url, storage_path, order_index)
     `
     )
@@ -69,12 +78,32 @@ export default async function ListingDetailPage({
     saved = !!data;
   }
 
+  // Fetch manager profile for "Meet your manager" section
+  let managerProfile: { full_name: string; manager_type: string } | null = null;
+  let agencyName: string | null = null;
+
+  if (listing.manager_user_id) {
+    const { data: mp } = await supabase
+      .from("rental_manager_profiles")
+      .select("full_name, manager_type")
+      .eq("user_id", listing.manager_user_id)
+      .single();
+    managerProfile = mp;
+  }
+
+  if (listing.agency_id) {
+    const { data: ag } = await supabase
+      .from("agencies")
+      .select("name")
+      .eq("id", listing.agency_id)
+      .single();
+    agencyName = ag?.name ?? null;
+  }
+
   const listingForClient = {
     ...listing,
-    landlord_profile: null as { display_name: string | null } | null,
-    agent_profile: null as { display_name: string | null } | null,
-    agency: null as { name: string } | null,
-    amenities: null as string[] | null,
+    manager_profile: managerProfile,
+    agency_name: agencyName,
   };
 
   return (

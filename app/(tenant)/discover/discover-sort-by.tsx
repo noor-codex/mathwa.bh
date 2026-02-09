@@ -17,8 +17,7 @@ const DEFAULT_SORT = "newest";
 const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "price_asc", label: "Lowest priced" },
   { value: "price_desc", label: "Highest priced" },
-  { value: "featured_first", label: "Featured" },
-  { value: "area_sqm_first", label: "m2" },
+  { value: "premium_first", label: "Premium" },
   { value: "newest", label: "Recently renewed" },
 ];
 

@@ -8,12 +8,11 @@ function getSupabaseKey() {
   );
 }
 
-/** Paths that require authentication (role-gated dashboards) */
+/** Paths that require authentication */
 const PROTECTED_PATHS = [
-  "/agent",
-  "/landlord",
+  "/manager",
+  "/become-manager",
   "/dashboard",
-  "/m2",
   "/moderation",
 ];
 

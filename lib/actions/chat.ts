@@ -18,9 +18,7 @@ export type ChatThreadWithDetails = {
   id: string;
   listing_id: string;
   tenant_user_id: string;
-  counterparty_type: "agent" | "landlord";
-  agent_user_id: string | null;
-  landlord_user_id: string | null;
+  manager_user_id: string;
   last_message_at: string | null;
   last_message_preview: string | null;
   is_archived: boolean;
@@ -95,7 +93,7 @@ type GetSupportThreadsResult = {
   error?: string;
 };
 
-// Fetch all chat threads for the current user
+// Fetch all chat threads for the current user (tenant side)
 export async function getChatThreads(
   filter: "all" | "archived" = "all"
 ): Promise<GetChatThreadsResult> {
@@ -110,9 +108,6 @@ export async function getChatThreads(
     return { success: false, error: "Authentication required" };
   }
 
-  // Build query - use only columns that exist in the base schema
-  // The is_archived/is_pinned/is_starred/is_muted columns are added by migration 20250204000001
-  // If not yet applied, we query without them
   const query = supabase
     .from("chat_threads")
     .select(
@@ -120,11 +115,13 @@ export async function getChatThreads(
       id,
       listing_id,
       tenant_user_id,
-      counterparty_type,
-      agent_user_id,
-      landlord_user_id,
+      manager_user_id,
       last_message_at,
       last_message_preview,
+      is_archived,
+      is_pinned,
+      is_starred,
+      is_muted,
       created_at,
       listing:listings!chat_threads_listing_id_fkey (
         id,
@@ -150,60 +147,64 @@ export async function getChatThreads(
     return { success: false, error: "Failed to fetch threads" };
   }
 
-  // Fetch counterparty profiles
-  const counterpartyIds = threads
-    .map((t) => t.agent_user_id || t.landlord_user_id)
+  // Fetch manager (counterparty) profiles
+  const managerIds = threads
+    .map((t) => t.manager_user_id)
     .filter((id): id is string => id !== null);
 
-  let counterpartyMap: Record<string, { user_id: string; display_name: string | null; email: string | null }> = {};
+  let counterpartyMap: Record<
+    string,
+    { user_id: string; display_name: string | null; email: string | null }
+  > = {};
 
-  if (counterpartyIds.length > 0) {
+  if (managerIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, display_name, email")
-      .in("user_id", counterpartyIds);
+      .in("user_id", managerIds);
 
     if (profiles) {
-      counterpartyMap = Object.fromEntries(profiles.map((p) => [p.user_id, p]));
+      counterpartyMap = Object.fromEntries(
+        profiles.map((p) => [p.user_id, p])
+      );
     }
   }
 
   // Map threads with counterparty info
   const threadsWithDetails: ChatThreadWithDetails[] = threads.map((thread) => {
-    const counterpartyId = thread.agent_user_id || thread.landlord_user_id;
-    // Supabase returns the relation as an array when using .select() with foreign keys
-    // We need to handle both array and object cases
     const listingRaw = thread.listing;
-    const listing = (Array.isArray(listingRaw) ? listingRaw[0] : listingRaw) as ChatThreadWithDetails["listing"] | undefined;
-    
-    // Sort listing_media by order_index
+    const listing = (
+      Array.isArray(listingRaw) ? listingRaw[0] : listingRaw
+    ) as ChatThreadWithDetails["listing"] | undefined;
+
     if (listing?.listing_media) {
-      listing.listing_media.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+      listing.listing_media.sort(
+        (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
+      );
     }
 
     return {
       id: thread.id,
       listing_id: thread.listing_id,
       tenant_user_id: thread.tenant_user_id,
-      counterparty_type: thread.counterparty_type as "agent" | "landlord",
-      agent_user_id: thread.agent_user_id,
-      landlord_user_id: thread.landlord_user_id,
+      manager_user_id: thread.manager_user_id,
       last_message_at: thread.last_message_at,
       last_message_preview: thread.last_message_preview,
-      is_archived: (thread as Record<string, unknown>).is_archived as boolean ?? false,
-      is_pinned: (thread as Record<string, unknown>).is_pinned as boolean ?? false,
-      is_starred: (thread as Record<string, unknown>).is_starred as boolean ?? false,
-      is_muted: (thread as Record<string, unknown>).is_muted as boolean ?? false,
+      is_archived: thread.is_archived ?? false,
+      is_pinned: thread.is_pinned ?? false,
+      is_starred: thread.is_starred ?? false,
+      is_muted: thread.is_muted ?? false,
       created_at: thread.created_at,
       listing: listing || null,
-      counterparty: counterpartyId ? counterpartyMap[counterpartyId] || null : null,
+      counterparty: counterpartyMap[thread.manager_user_id] || null,
     };
   });
 
-  // Filter by archive status client-side (columns may not exist in DB yet)
-  const filtered = filter === "archived"
-    ? threadsWithDetails.filter((t) => t.is_archived)
-    : threadsWithDetails.filter((t) => !t.is_archived);
+  // Filter by archive status
+  const filtered =
+    filter === "archived"
+      ? threadsWithDetails.filter((t) => t.is_archived)
+      : threadsWithDetails.filter((t) => !t.is_archived);
 
   // Sort: pinned first
   filtered.sort((a, b) => {
@@ -230,7 +231,7 @@ export async function getChatMessages(
     return { success: false, error: "Authentication required" };
   }
 
-  // Fetch thread with listing details (only base schema columns)
+  // Fetch thread with listing details
   const { data: thread, error: threadError } = await supabase
     .from("chat_threads")
     .select(
@@ -238,11 +239,13 @@ export async function getChatMessages(
       id,
       listing_id,
       tenant_user_id,
-      counterparty_type,
-      agent_user_id,
-      landlord_user_id,
+      manager_user_id,
       last_message_at,
       last_message_preview,
+      is_archived,
+      is_pinned,
+      is_starred,
+      is_muted,
       created_at,
       listing:listings!chat_threads_listing_id_fkey (
         id,
@@ -268,7 +271,9 @@ export async function getChatMessages(
   // Fetch messages
   const { data: messages, error: messagesError } = await supabase
     .from("chat_messages")
-    .select("id, thread_id, sender_user_id, message_type, body, payload, created_at")
+    .select(
+      "id, thread_id, sender_user_id, message_type, body, payload, created_at"
+    )
     .eq("thread_id", threadId)
     .order("created_at", { ascending: true });
 
@@ -279,7 +284,10 @@ export async function getChatMessages(
 
   // Fetch sender profiles
   const senderIds = [...new Set(messages.map((m) => m.sender_user_id))];
-  let senderMap: Record<string, { user_id: string; display_name: string | null }> = {};
+  let senderMap: Record<
+    string,
+    { user_id: string; display_name: string | null }
+  > = {};
 
   if (senderIds.length > 0) {
     const { data: profiles } = await supabase
@@ -292,40 +300,39 @@ export async function getChatMessages(
     }
   }
 
-  // Fetch counterparty for thread
-  const counterpartyId = thread.agent_user_id || thread.landlord_user_id;
+  // Fetch counterparty (manager) profile
   let counterparty: ChatThreadWithDetails["counterparty"] = null;
-
-  if (counterpartyId) {
+  if (thread.manager_user_id) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("user_id, display_name, email")
-      .eq("user_id", counterpartyId)
+      .eq("user_id", thread.manager_user_id)
       .single();
 
     counterparty = profile || null;
   }
 
   const listingRaw = thread.listing;
-  const listing = (Array.isArray(listingRaw) ? listingRaw[0] : listingRaw) as ChatThreadWithDetails["listing"] | undefined;
+  const listing = (
+    Array.isArray(listingRaw) ? listingRaw[0] : listingRaw
+  ) as ChatThreadWithDetails["listing"] | undefined;
   if (listing?.listing_media) {
-    listing.listing_media.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    listing.listing_media.sort(
+      (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
+    );
   }
 
-  const threadRec = thread as Record<string, unknown>;
   const threadWithDetails: ChatThreadWithDetails = {
     id: thread.id,
     listing_id: thread.listing_id,
     tenant_user_id: thread.tenant_user_id,
-    counterparty_type: thread.counterparty_type as "agent" | "landlord",
-    agent_user_id: thread.agent_user_id,
-    landlord_user_id: thread.landlord_user_id,
+    manager_user_id: thread.manager_user_id,
     last_message_at: thread.last_message_at,
     last_message_preview: thread.last_message_preview,
-    is_archived: threadRec.is_archived as boolean ?? false,
-    is_pinned: threadRec.is_pinned as boolean ?? false,
-    is_starred: threadRec.is_starred as boolean ?? false,
-    is_muted: threadRec.is_muted as boolean ?? false,
+    is_archived: thread.is_archived ?? false,
+    is_pinned: thread.is_pinned ?? false,
+    is_starred: thread.is_starred ?? false,
+    is_muted: thread.is_muted ?? false,
     created_at: thread.created_at,
     listing: listing || null,
     counterparty,
@@ -342,7 +349,11 @@ export async function getChatMessages(
     sender: senderMap[msg.sender_user_id] || null,
   }));
 
-  return { success: true, messages: messagesWithSender, thread: threadWithDetails };
+  return {
+    success: true,
+    messages: messagesWithSender,
+    thread: threadWithDetails,
+  };
 }
 
 // Send message to existing thread
@@ -361,7 +372,6 @@ export async function sendMessageToThread(
     return { success: false, error: "Authentication required" };
   }
 
-  // Insert the message
   const { error: messageError } = await supabase.from("chat_messages").insert({
     thread_id: threadId,
     sender_user_id: user.id,
@@ -375,7 +385,8 @@ export async function sendMessageToThread(
   }
 
   // Update thread's last_message_at and preview
-  const preview = message.length > 100 ? message.substring(0, 100) + "..." : message;
+  const preview =
+    message.length > 100 ? message.substring(0, 100) + "..." : message;
   await supabase
     .from("chat_threads")
     .update({
@@ -409,9 +420,11 @@ export async function updateThreadStatus(
   }
 
   const updateData: Record<string, boolean> = {};
-  if (updates.isArchived !== undefined) updateData.is_archived = updates.isArchived;
+  if (updates.isArchived !== undefined)
+    updateData.is_archived = updates.isArchived;
   if (updates.isPinned !== undefined) updateData.is_pinned = updates.isPinned;
-  if (updates.isStarred !== undefined) updateData.is_starred = updates.isStarred;
+  if (updates.isStarred !== undefined)
+    updateData.is_starred = updates.isStarred;
   if (updates.isMuted !== undefined) updateData.is_muted = updates.isMuted;
 
   if (Object.keys(updateData).length === 0) {
@@ -425,11 +438,6 @@ export async function updateThreadStatus(
     .eq("tenant_user_id", user.id);
 
   if (updateError) {
-    // If columns don't exist yet (migration not applied), silently succeed
-    if (updateError.code === "42703") {
-      console.warn("Thread status columns not yet available (migration pending)");
-      return { success: true };
-    }
     console.error("Update thread status error:", updateError);
     return { success: false, error: "Failed to update thread" };
   }
@@ -452,12 +460,13 @@ export async function getSupportThreads(): Promise<GetSupportThreadsResult> {
 
   const { data: threads, error: threadsError } = await supabase
     .from("support_threads")
-    .select("id, user_id, subject, status, last_message_at, last_message_preview, created_at")
+    .select(
+      "id, user_id, subject, status, last_message_at, last_message_preview, created_at"
+    )
     .eq("user_id", user.id)
     .order("last_message_at", { ascending: false, nullsFirst: false });
 
   if (threadsError) {
-    // If table doesn't exist yet (migration not applied), return empty array
     if (threadsError.code === "PGRST205" || threadsError.code === "42P01") {
       return { success: true, threads: [] };
     }
@@ -477,7 +486,6 @@ export async function sendChatMessage(
 ): Promise<SendChatMessageResult> {
   const supabase = await createClient();
 
-  // Get current user
   const {
     data: { user },
     error: authError,
@@ -487,21 +495,16 @@ export async function sendChatMessage(
     return { success: false, error: "Authentication required" };
   }
 
-  // Get listing details to determine counterparty
+  // Get listing details to determine manager
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, owner_type, landlord_user_id, agent_user_id")
+    .select("id, manager_user_id")
     .eq("id", listingId)
     .single();
 
   if (listingError || !listing) {
     return { success: false, error: "Listing not found" };
   }
-
-  // Determine counterparty type and ID based on listing owner
-  const counterpartyType = listing.owner_type === "agency" ? "agent" : "landlord";
-  const agentUserId = counterpartyType === "agent" ? listing.agent_user_id : null;
-  const landlordUserId = counterpartyType === "landlord" ? listing.landlord_user_id : null;
 
   // Check if a thread already exists for this listing + tenant
   const { data: existingThread } = await supabase
@@ -522,9 +525,7 @@ export async function sendChatMessage(
       .insert({
         listing_id: listingId,
         tenant_user_id: user.id,
-        counterparty_type: counterpartyType,
-        agent_user_id: agentUserId,
-        landlord_user_id: landlordUserId,
+        manager_user_id: listing.manager_user_id,
       })
       .select("id")
       .single();
@@ -551,7 +552,8 @@ export async function sendChatMessage(
   }
 
   // Update thread's last_message_at and preview
-  const preview = message.length > 100 ? message.substring(0, 100) + "..." : message;
+  const preview =
+    message.length > 100 ? message.substring(0, 100) + "..." : message;
   await supabase
     .from("chat_threads")
     .update({
@@ -568,7 +570,6 @@ export async function deleteChatThread(
 ): Promise<DeleteChatThreadResult> {
   const supabase = await createClient();
 
-  // Get current user
   const {
     data: { user },
     error: authError,
@@ -578,8 +579,6 @@ export async function deleteChatThread(
     return { success: false, error: "Authentication required" };
   }
 
-  // Delete the thread (cascade will delete messages)
-  // RLS ensures user can only delete threads they're a participant in
   const { error: deleteError } = await supabase
     .from("chat_threads")
     .delete()

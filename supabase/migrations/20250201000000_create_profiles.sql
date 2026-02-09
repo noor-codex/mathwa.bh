@@ -4,8 +4,10 @@ CREATE TABLE public.profiles (
   display_name TEXT,
   email TEXT,
   phone TEXT,
+  avatar_url TEXT,
+  identity_verified BOOLEAN NOT NULL DEFAULT false,
   roles JSONB NOT NULL DEFAULT '{"tenant": true}'::jsonb,
-  active_role TEXT NOT NULL DEFAULT 'tenant' CHECK (active_role IN ('tenant', 'agent', 'landlord')),
+  active_role TEXT NOT NULL DEFAULT 'tenant' CHECK (active_role IN ('tenant', 'rental_manager')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -26,6 +28,12 @@ CREATE POLICY "Users can update own profile"
 CREATE POLICY "Users can insert own profile"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = user_id);
+
+-- Authenticated users can read any profile (for "Meet your manager" on listing detail)
+CREATE POLICY "Authenticated users can read any profile"
+  ON public.profiles FOR SELECT
+  TO authenticated
+  USING (true);
 
 -- Trigger to create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -51,7 +59,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Updated_at trigger
+-- Updated_at trigger helper
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
