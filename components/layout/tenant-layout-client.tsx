@@ -15,7 +15,8 @@ function TenantLayoutInner({
   const isListingDetail = pathname?.startsWith("/listing/") && pathname !== "/listing";
   // Hide bottom nav when inside a chat thread (full-screen chat view)
   const isChatThread = /^\/messages\/[^/]+$/.test(pathname ?? "");
-  const hideNav = isSearchSheetOpen || isListingDetail || isChatThread;
+  const isProfileSubpage = (pathname ?? "").startsWith("/profile/") && pathname !== "/profile";
+  const hideNav = isSearchSheetOpen || isListingDetail || isChatThread || isProfileSubpage;
   return (
     <div className={cn("min-h-screen font-sans", !hideNav && "pb-16")}>
       <main>{children}</main>

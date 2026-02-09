@@ -161,12 +161,12 @@ export function ChatThreadCard({
               alt={thread.listing?.title || "Listing"}
               width={68}
               height={68}
-              className="rounded-full object-cover"
+              className="rounded-[15px] object-cover"
               style={{ width: 68, height: 68 }}
             />
           ) : (
             <div
-              className="flex items-center justify-center rounded-full bg-gray-200"
+              className="flex items-center justify-center rounded-[15px] bg-gray-200"
               style={{ width: 68, height: 68 }}
             >
               <span className="text-gray-400 text-xl">?</span>
@@ -174,7 +174,7 @@ export function ChatThreadCard({
           )}
           {/* Agent avatar overlay - positioned bottom-left */}
           <div
-            className="absolute flex items-center justify-center rounded-full border-2 border-white bg-gray-300"
+            className="absolute flex items-center justify-center rounded-[15px] border-2 border-white bg-gray-300"
             style={{ width: 29, height: 29, left: -2, top: -2 }}
           >
             <span
